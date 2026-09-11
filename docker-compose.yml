@@ -1,0 +1,103 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cryptobot-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: cryptobot
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cryptobot-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cryptobot-laravel
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=cryptobot
+      - DB_USERNAME=root
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - CACHE_STORE=redis
+      - QUEUE_CONNECTION=database
+
+  nginx:
+    image: nginx:alpine
+    container_name: cryptobot-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - laravel
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cryptobot-queue
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - mysql
+      - redis
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cryptobot-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan schedule:work
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - mysql
+      - redis
+
+  python-engine:
+    build:
+      context: ./python_engine
+      dockerfile: Dockerfile
+    container_name: cryptobot-python
+    restart: unless-stopped
+    environment:
+      - PYTHON_ENGINE_KEY=${PYTHON_ENGINE_KEY}
+    ports:
+      - "8001:8000"
+
+volumes:
+  mysql_data:
