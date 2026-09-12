@@ -21,7 +21,7 @@ class GlobalSetting extends Model
     {
         static::updateOrCreate(
             ['key' => $key],
-            ['value' => $value, 'description' => $description]
+            ['value' => $value ?? '', 'description' => $description]
         );
     }
 }
