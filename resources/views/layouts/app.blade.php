@@ -11,13 +11,16 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-        <!-- Bootstrap 4.6 + Font Awesome -->
+        <!-- Tailwind (Breeze pages) then Bootstrap 4.6 + Font Awesome -->
+        <script src="https://cdn.tailwindcss.com"></script>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-        <!-- App assets (Tailwind + Alpine) & custom theme -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-        <link rel="stylesheet" href="{{ asset('css/crypto.css') }}?v=2">
+        <!-- Custom dark theme -->
+        <link rel="stylesheet" href="{{ asset('css/crypto.css') }}?v=3">
+
+        <!-- Alpine -->
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
     </head>
     <body class="app-body">
         <div class="app-shell">
