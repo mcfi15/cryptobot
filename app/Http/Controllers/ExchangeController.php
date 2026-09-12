@@ -48,7 +48,46 @@ class ExchangeController extends Controller
         $exchange->last_connection_check = now();
         $exchange->save();
 
-        return response()->json($result);
+        $checks = [
+            'connection' => [
+                'label' => 'API connection',
+                'pass' => 'Successfully connected to ' . strtoupper($exchange->exchange),
+                'fail' => 'Could not connect to ' . strtoupper($exchange->exchange),
+            ],
+            'account_access' => [
+                'label' => 'Account access',
+                'pass' => 'API key can read your account',
+                'fail' => 'API key does not have account read access',
+            ],
+            'trading_permission' => [
+                'label' => 'Trading permission',
+                'pass' => 'API key is allowed to trade',
+                'fail' => 'API key does not have trading permission',
+            ],
+            'market_access' => [
+                'label' => 'Market data access',
+                'pass' => 'Market data is accessible',
+                'fail' => 'Could not access market data',
+            ],
+        ];
+
+        $rows = [];
+        foreach ($checks as $key => $def) {
+            $ok = (bool) ($result[$key] ?? false);
+            $rows[] = [
+                'ok' => $ok,
+                'label' => $def['label'],
+                'text' => $ok ? $def['pass'] : $def['fail'],
+            ];
+        }
+
+        return back()->with('test_result', [
+            'exchange' => strtoupper($exchange->exchange),
+            'label' => $exchange->label,
+            'connected' => (bool) $result['connection'],
+            'checks' => $rows,
+            'error' => $result['error'] ?? null,
+        ]);
     }
 
     public function toggleTrading(ExchangeAccount $exchange)

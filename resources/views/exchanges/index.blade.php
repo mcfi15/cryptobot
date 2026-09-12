@@ -2,6 +2,47 @@
 @section('title', 'Exchanges')
 
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success"><i class="fas fa-check-circle mr-2"></i>{{ session('success') }}</div>
+@endif
+
+@if(session('test_result'))
+    @php $tr = session('test_result'); @endphp
+    <div class="card stat-card mb-4 test-result-card">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-3">
+                <div class="mr-3">
+                    <span class="test-result-icon {{ $tr['connected'] ? 'ok' : 'fail' }}">
+                        <i class="fas fa-{{ $tr['connected'] ? 'check' : 'times' }}"></i>
+                    </span>
+                </div>
+                <div>
+                    <h5 class="mb-0">{{ $tr['exchange'] }} — Connection {{ $tr['connected'] ? 'Successful' : 'Failed' }}</h5>
+                    <small class="text-muted">{{ $tr['label'] }}</small>
+                </div>
+            </div>
+
+            <div class="row">
+                @foreach($tr['checks'] as $check)
+                    <div class="col-md-6 mb-2">
+                        <div class="test-check {{ $check['ok'] ? 'pass' : 'fail' }}">
+                            <i class="fas fa-{{ $check['ok'] ? 'check-circle' : 'times-circle' }} mr-2"></i>
+                            <span><strong>{{ $check['label'] }}:</strong> {{ $check['text'] }}</span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            @if(!$tr['connected'] && $tr['error'])
+                <div class="alert alert-danger small mb-0 mt-3">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    {{ $tr['error'] }}
+                </div>
+            @endif
+        </div>
+    </div>
+@endif
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>Exchange Accounts</h4>
     <button class="btn btn-primary" data-toggle="modal" data-target="#addExchangeModal">
