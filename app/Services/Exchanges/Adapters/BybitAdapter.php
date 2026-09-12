@@ -43,18 +43,25 @@ class BybitAdapter extends BaseAdapter
         $secret = $this->credentials['api_secret'];
 
         $timestamp = round(microtime(true) * 1000);
-        $params['body']['timestamp'] = $timestamp;
-        $params['body']['api_key'] = $apiKey;
+        $recvWindow = '5000';
 
-        $jsonBody = json_encode($params['body'] ?? []);
-        $signStr = $timestamp . $apiKey . '5000' . $jsonBody;
+        $body = $params['body'] ?? [];
+        $query = $params['query'] ?? [];
+
+        if (count($body) > 0) {
+            $signStr = $timestamp . $apiKey . $recvWindow . json_encode($body);
+        } else {
+            $params['query'] = $query;
+            $signStr = $timestamp . $apiKey . $recvWindow . http_build_query($query);
+        }
+
         $signature = hash_hmac('sha256', $signStr, $secret);
 
         $params['headers'] = [
             'X-BAPI-API-KEY' => $apiKey,
             'X-BAPI-SIGN' => $signature,
             'X-BAPI-TIMESTAMP' => (string)$timestamp,
-            'X-BAPI-RECV-WINDOW' => '5000',
+            'X-BAPI-RECV-WINDOW' => $recvWindow,
             'Content-Type' => 'application/json',
         ];
 
@@ -64,7 +71,7 @@ class BybitAdapter extends BaseAdapter
     public function testConnection(): array
     {
         try {
-            $result = $this->post('/v5/account/fees-reading', ['body' => []]);
+            $result = $this->get('/v5/account/wallet-balance', ['query' => ['accountType' => 'UNIFIED']], signed: true);
             return [
                 'connection' => true,
                 'account_access' => isset($result['result']),
@@ -144,7 +151,7 @@ class BybitAdapter extends BaseAdapter
 
     public function getBalances(): array
     {
-        $result = $this->post('/v5/account/wallet-balance', ['body' => ['accountType' => 'UNIFIED']]);
+        $result = $this->get('/v5/account/wallet-balance', ['query' => ['accountType' => 'UNIFIED']], signed: true);
         $balances = [];
         foreach ($result['result']['list'][0]['coin'] ?? [] as $c) {
             if ((float)$c['walletBalance'] > 0) {

@@ -42,21 +42,19 @@ class MexcAdapter extends BaseAdapter
         $apiKey = $this->credentials['api_key'];
         $secret = $this->credentials['api_secret'];
 
-        $timestamp = round(microtime(true) * 1000);
+        if (isset($params['body'])) {
+            $data = &$params['body'];
+        } else {
+            $params['query'] = $params['query'] ?? [];
+            $data = &$params['query'];
+        }
 
-        $params['body']['timestamp'] = $timestamp;
-        $query = http_build_query($params['body'] ?? $params['query'] ?? []);
-        $signature = hash_hmac('sha256', $query, $secret);
+        $data['timestamp'] = round(microtime(true) * 1000);
+        $data['signature'] = hash_hmac('sha256', http_build_query($data), $secret);
 
         $params['headers'] = [
             'X-MEXC-APIKEY' => $apiKey,
         ];
-
-        if (isset($params['body'])) {
-            $params['body']['signature'] = $signature;
-        } else {
-            $params['query']['signature'] = $signature;
-        }
 
         return $params;
     }
@@ -236,8 +234,8 @@ class MexcAdapter extends BaseAdapter
 
     public function cancelOrder(string $orderId, ?string $symbol = null): array
     {
-        $params = ['body' => ['orderId' => $orderId]];
-        if ($symbol) $params['body']['symbol'] = $symbol;
+        $params = ['query' => ['orderId' => $orderId]];
+        if ($symbol) $params['query']['symbol'] = $symbol;
 
         $result = $this->delete('/api/v3/order', $params);
         return ['order_id' => $result['orderId'], 'status' => $result['status']];

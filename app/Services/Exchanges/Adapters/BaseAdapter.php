@@ -117,7 +117,7 @@ abstract class BaseAdapter implements ExchangeInterface
         try {
             $response = Http::timeout(10)
                 ->withHeaders($params['headers'] ?? [])
-                ->delete($this->baseUrl . $endpoint, $params['body'] ?? []);
+                ->delete($this->baseUrl . $endpoint, $params['query'] ?? []);
 
             $this->requestCount++;
 
