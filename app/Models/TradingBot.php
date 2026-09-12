@@ -41,17 +41,17 @@ class TradingBot extends Model
 
     public function signals(): HasMany
     {
-        return $this->hasMany(BotSignal::class);
+        return $this->hasMany(BotSignal::class, 'bot_id');
     }
 
     public function trades(): HasMany
     {
-        return $this->hasMany(BotTrade::class);
+        return $this->hasMany(BotTrade::class, 'bot_id');
     }
 
     public function positions(): HasMany
     {
-        return $this->hasMany(BotPosition::class);
+        return $this->hasMany(BotPosition::class, 'bot_id');
     }
 
     public function isRunning(): bool

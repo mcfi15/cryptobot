@@ -29,6 +29,6 @@ class BotSignal extends Model
 
     public function bot(): BelongsTo
     {
-        return $this->belongsTo(TradingBot::class);
+        return $this->belongsTo(TradingBot::class, 'bot_id');
     }
 }
