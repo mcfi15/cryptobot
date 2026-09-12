@@ -15,7 +15,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(GlobalSettingsSeeder::class);
+        $this->call([
+            GlobalSettingsSeeder::class,
+            AdminSeeder::class,
+        ]);
 
         User::factory()->create([
             'name' => 'Test User',

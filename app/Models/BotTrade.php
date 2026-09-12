@@ -11,7 +11,7 @@ class BotTrade extends Model
     use HasFactory;
 
     protected $fillable = [
-        'bot_id', 'user_id', 'exchange_account_id', 'exchange', 'market_type',
+        'bot_id', 'user_id', 'exchange_account_id', 'signal_id', 'source', 'exchange', 'market_type',
         'symbol', 'side', 'entry_price', 'exit_price', 'quantity', 'leverage',
         'margin', 'stop_loss', 'take_profit', 'fees', 'funding', 'slippage',
         'pnl', 'pnl_percent', 'exchange_order_id', 'status', 'opened_at',

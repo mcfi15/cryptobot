@@ -11,7 +11,7 @@ class BotPosition extends Model
     use HasFactory;
 
     protected $fillable = [
-        'bot_id', 'user_id', 'exchange_account_id', 'exchange', 'market_type',
+        'bot_id', 'user_id', 'exchange_account_id', 'signal_id', 'exchange', 'market_type',
         'symbol', 'side', 'quantity', 'entry_price', 'current_price',
         'leverage', 'margin', 'liquidation_price', 'unrealized_pnl',
         'stop_loss', 'take_profit', 'status', 'opened_at',

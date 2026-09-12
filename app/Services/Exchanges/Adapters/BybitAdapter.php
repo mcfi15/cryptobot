@@ -129,6 +129,28 @@ class BybitAdapter extends BaseAdapter
         ];
     }
 
+    public function getTickers(string $marketType = 'spot'): array
+    {
+        $category = $marketType === 'futures' ? 'linear' : 'spot';
+        $result = $this->get('/v5/market/tickers', ['query' => ['category' => $category]], signed: false);
+
+        $tickers = [];
+        foreach ($result['result']['list'] ?? [] as $t) {
+            $tickers[] = [
+                'symbol' => $t['symbol'],
+                'price' => $t['lastPrice'],
+                'bid' => $t['bid1Price'],
+                'ask' => $t['ask1Price'],
+                'high' => $t['highPrice24h'],
+                'low' => $t['lowPrice24h'],
+                'volume' => $t['volume24h'],
+                'quote_volume' => $t['turnover24h'] ?? '0',
+                'change_24h' => $t['price24hPcnt'],
+            ];
+        }
+        return $tickers;
+    }
+
     public function getKlines(string $symbol, string $interval, int $limit = 500): array
     {
         $result = $this->get('/v5/market/kline', ['query' => [

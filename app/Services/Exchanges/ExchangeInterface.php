@@ -16,6 +16,8 @@ interface ExchangeInterface
 
     public function getTicker(string $symbol): array;
 
+    public function getTickers(string $marketType = 'spot'): array;
+
     public function getOrderBook(string $symbol, int $limit = 20): array;
 
     public function getKlines(string $symbol, string $interval, int $limit = 500): array;

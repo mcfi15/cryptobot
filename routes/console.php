@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 Schedule::command('trading:health')->hourly();
 Schedule::command('trading:run-signals')->everyFiveMinutes();
 Schedule::command('trading:sync-markets')->daily();
+
+Schedule::command('scanner:run')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('scanner:monitor')->everyMinute()->withoutOverlapping();

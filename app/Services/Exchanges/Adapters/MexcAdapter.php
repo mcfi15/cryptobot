@@ -126,6 +126,27 @@ class MexcAdapter extends BaseAdapter
         ];
     }
 
+    public function getTickers(string $marketType = 'spot'): array
+    {
+        $result = $this->get('/api/v3/ticker/24hr');
+
+        $tickers = [];
+        foreach ($result as $t) {
+            $tickers[] = [
+                'symbol' => $t['symbol'],
+                'price' => $t['lastPrice'],
+                'bid' => $t['bidPrice'],
+                'ask' => $t['askPrice'],
+                'high' => $t['highPrice'],
+                'low' => $t['lowPrice'],
+                'volume' => $t['volume'],
+                'quote_volume' => $t['quoteVolume'] ?? '0',
+                'change_24h' => $t['priceChangePercent'] ?? '0',
+            ];
+        }
+        return $tickers;
+    }
+
     public function getKlines(string $symbol, string $interval, int $limit = 500): array
     {
         $result = $this->get('/api/v3/klines', ['query' => [

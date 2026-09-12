@@ -2,10 +2,14 @@
     <div class="crypto-navbar-inner">
         <!-- Brand -->
         <a href="{{ route('dashboard') }}" class="nav-brand">
-            <span class="brand-mark"><i class="fas fa-robot"></i></span>
+            @if($siteLogo = site_setting('site_logo'))
+                <img src="{{ asset($siteLogo) }}" alt="Logo" style="height:38px; border-radius:8px;">
+            @else
+                <span class="brand-mark"><i class="fas fa-robot"></i></span>
+            @endif
             <span class="brand-text">
-                CryptoBot
-                <span class="brand-sub">Automated Trading</span>
+                {{ site_setting('site_name', 'CryptoBot') }}
+                <span class="brand-sub">{{ site_setting('site_tagline', 'Automated AI Trading') }}</span>
             </span>
         </a>
 
@@ -19,6 +23,9 @@
             </a>
             <a href="{{ route('bots.index') }}" class="{{ request()->routeIs('bots.*') ? 'active' : '' }}">
                 <i class="fas fa-robot"></i> Bots
+            </a>
+            <a href="{{ route('scanner.index') }}" class="{{ request()->routeIs('scanner.*') ? 'active' : '' }}">
+                <i class="fas fa-radar"></i> Market Scanner
             </a>
         </div>
 
@@ -60,5 +67,6 @@
         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a>
         <a href="{{ route('exchanges.index') }}" class="{{ request()->routeIs('exchanges.*') ? 'active' : '' }}"><i class="fas fa-link"></i> Exchanges</a>
         <a href="{{ route('bots.index') }}" class="{{ request()->routeIs('bots.*') ? 'active' : '' }}"><i class="fas fa-robot"></i> Bots</a>
+        <a href="{{ route('scanner.index') }}" class="{{ request()->routeIs('scanner.*') ? 'active' : '' }}"><i class="fas fa-radar"></i> Market Scanner</a>
     </div>
 </nav>
