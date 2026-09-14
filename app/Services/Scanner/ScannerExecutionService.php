@@ -174,6 +174,11 @@ class ScannerExecutionService
         $trade->exchange_order_id = $exchangeOrderId;
         $trade->status = $status;
         $trade->opened_at = now();
+
+        // Entry fees / slippage estimate (live fees are exchange-returned elsewhere).
+        $entryNotional = abs($filledPrice * $plan['quantity']);
+        $trade->fees = round($entryNotional * 0.001, 8);
+        $trade->slippage = 0;
         $trade->metadata = ['source' => 'scanner', 'paper' => $config->paper_mode, 'signal_score' => $signal->signal_score];
         $trade->save();
 
@@ -191,6 +196,16 @@ class ScannerExecutionService
         $position->current_price = $filledPrice;
         $position->leverage = $plan['leverage'];
         $position->margin = $plan['margin'];
+
+        // Estimate isolated liquidation price for futures positions.
+        if ($market->market_type === 'futures' && $plan['leverage'] > 1) {
+            $mmr = 0.005;
+            $long = $plan['side'] === 'buy';
+            $position->liquidation_price = $long
+                ? $filledPrice * (1 - (1 / $plan['leverage']) + $mmr)
+                : $filledPrice * (1 + (1 / $plan['leverage']) - $mmr);
+        }
+
         $position->stop_loss = $plan['stop_loss'];
         $position->take_profit = $plan['take_profit'];
         $position->status = 'open';

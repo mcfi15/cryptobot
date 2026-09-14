@@ -15,7 +15,7 @@ class BotTrade extends Model
         'symbol', 'side', 'entry_price', 'exit_price', 'quantity', 'leverage',
         'margin', 'stop_loss', 'take_profit', 'fees', 'funding', 'slippage',
         'pnl', 'pnl_percent', 'exchange_order_id', 'status', 'opened_at',
-        'closed_at', 'metadata',
+        'closed_at', 'metadata', 'exit_reason',
     ];
 
     protected $casts = [
@@ -48,6 +48,11 @@ class BotTrade extends Model
     public function exchangeAccount(): BelongsTo
     {
         return $this->belongsTo(ExchangeAccount::class);
+    }
+
+    public function signal(): BelongsTo
+    {
+        return $this->belongsTo(ScannerSignal::class, 'signal_id');
     }
 
     public function isWin(): bool

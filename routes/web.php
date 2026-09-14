@@ -42,6 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/signals/{signal}', [ScannerController::class, 'showSignal'])->name('signal.show');
         Route::get('/signals/{signal}/confirm', [ScannerController::class, 'tradeConfirm'])->name('signal.confirm');
         Route::post('/signals/{signal}/trade', [ScannerController::class, 'trade'])->name('signal.trade');
+        Route::post('/signals/{signal}/watch', [ScannerController::class, 'watch'])->name('signal.watch');
+        Route::post('/signals/{signal}/unwatch', [ScannerController::class, 'unwatch'])->name('signal.unwatch');
+        Route::post('/signals/{signal}/dismiss', [ScannerController::class, 'dismiss'])->name('signal.dismiss');
     });
 });
 

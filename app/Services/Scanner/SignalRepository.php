@@ -165,6 +165,29 @@ class SignalRepository
         $signal->save();
     }
 
+    public function removeWatchlist(ScannerSignal $signal): void
+    {
+        $signal->watch = false;
+        if (in_array($signal->status, ['watching', 'entry_pending'], true)) {
+            $signal->status = 'qualified';
+        }
+        $signal->save();
+    }
+
+    /**
+     * User dismissed the signal — it becomes canceled and is never executed.
+     */
+    public function markDismissed(ScannerSignal $signal, string $reason = 'Dismissed by user'): void
+    {
+        $signal->status = 'canceled';
+        $signal->watch = false;
+        $signal->invalidation = array_merge($signal->invalidation ?? [], [
+            'reason' => $reason,
+            'dismissed_at' => now()->toDateTimeString(),
+        ]);
+        $signal->save();
+    }
+
     public function markExecuted(ScannerSignal $signal): void
     {
         $signal->status = 'executed';

@@ -278,6 +278,29 @@
                     </ul>
                 </div>
             </div>
+
+            @isset($activity)
+            <div class="card mt-3">
+                <div class="card-header"><i class="fas fa-stream mr-1"></i> Activity</div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush small">
+                        @forelse($activity as $item)
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="badge badge-{{ $item->level === 'danger' ? 'danger' : ($item->level === 'warning' ? 'warning' : ($item->level === 'success' ? 'success' : 'secondary')) }}">
+                                        {{ strtoupper($item->level) }}
+                                    </span>
+                                    <small class="text-muted">{{ $item->created_at?->diffForHumans() }}</small>
+                                </div>
+                                <div class="mt-1">{{ $item->message }}</div>
+                            </li>
+                        @empty
+                            <li class="list-group-item text-muted text-center">No activity yet.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
+            @endisset
         </div>
 
         <!-- Signal terminal -->

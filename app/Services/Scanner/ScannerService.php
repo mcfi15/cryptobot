@@ -3,6 +3,7 @@
 namespace App\Services\Scanner;
 
 use App\Jobs\ProcessScannerSignal;
+use App\Models\BotTrade;
 use App\Models\ExchangeAccount;
 use App\Models\GlobalSetting;
 use App\Models\ScannerConfig;
@@ -39,13 +40,21 @@ class ScannerService
         $config = ScannerConfig::forUser($user->id);
 
         if ($config->status !== 'running') {
-            return ['ok' => false, 'message' => 'Scanner is stopped.', 'signals' => []];
+            $message = $config->status === 'paused'
+                ? 'Trading is paused: '.($config->paused_reason ?: 'waiting for manual resume').' — resume from the scanner page.'
+                : 'Scanner is stopped.';
+            return ['ok' => false, 'message' => $message, 'signals' => []];
         }
         if (GlobalSetting::get('scanner_kill_switch', false)) {
             return ['ok' => false, 'message' => 'Scanner kill switch is ON.', 'signals' => []];
         }
 
         $start = microtime(true);
+
+        // Capital protection: sync equity peak and auto-pause on breach.
+        if ($this->applyRiskProtection($user, $config)) {
+            return ['ok' => false, 'message' => 'Trading auto-paused by risk protection.', 'signals' => []];
+        }
 
         $this->repository->expireDue();
 
@@ -75,6 +84,16 @@ class ScannerService
         $config->last_scan_duration_ms = $duration;
         $config->save();
 
+        ActivityLogger::log(
+            $user->id,
+            'scan.completed',
+            "Scanned {$scanned} markets, qualified ".count($qualified)." signals, rejected {$rejected}.",
+            count($qualified) > 0 ? 'success' : 'info',
+            $config->id,
+            null,
+            ['scanned' => $scanned, 'qualified' => count($qualified), 'rejected' => $rejected, 'duration_ms' => $duration]
+        );
+
         return [
             'ok' => true,
             'message' => "Scanned {$scanned} markets, qualified ".count($qualified)." signals, rejected {$rejected}.",
@@ -83,6 +102,52 @@ class ScannerService
             'rejected' => $rejected,
             'duration_ms' => $duration,
         ];
+    }
+
+    /**
+     * Update the equity peak and auto-pause the scanner when the drawdown or
+     * daily-loss capital-protection limit is breached. Returns true if paused.
+     */
+    protected function applyRiskProtection(User $user, ScannerConfig $config): bool
+    {
+        $equity = $this->risk->userEquity($user->id);
+        if ($equity <= 0) {
+            return false;
+        }
+
+        $peak = (float) $config->peak_equity;
+        if ($peak <= 0 || $equity > $peak) {
+            $config->peak_equity = $equity;
+            $config->save();
+            return false;
+        }
+
+        $maxDrawdown = (float) GlobalSetting::get('global_max_drawdown', 15.0);
+        $drawdown = ($peak - $equity) / $peak * 100;
+
+        $todayLoss = (float) BotTrade::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('closed_at')
+            ->where('closed_at', '>=', now()->startOfDay())
+            ->whereNotNull('pnl')
+            ->sum('pnl');
+        $dailyBreach = $todayLoss < -($equity * ((float) $config->max_daily_loss / 100));
+
+        if ($drawdown >= $maxDrawdown || $dailyBreach) {
+            $reason = $drawdown >= $maxDrawdown
+                ? 'Drawdown limit reached ('.round($drawdown, 1).'%)'
+                : 'Daily loss limit reached ('.round($todayLoss, 2).')';
+            $config->status = 'paused';
+            $config->paused_reason = $reason.' — resume manually';
+            $config->save();
+            Log::warning('scanner.auto_paused', [
+                'user' => $user->id, 'reason' => $config->paused_reason,
+            ]);
+            ActivityLogger::log($user->id, 'risk.auto_paused', $reason, 'danger', $config->id);
+            return true;
+        }
+
+        return false;
     }
 
     protected function scanAccount(ExchangeAccount $account, string $marketType, ScannerConfig $config, array &$qualified): array
@@ -191,15 +256,29 @@ class ScannerService
                     'base_asset' => $market['base_asset'] ?? '',
                     'entry_price' => (float) $analysis['entry'],
                     'current_price' => (float) $analysis['close'],
+                    'stop_loss' => (float) $analysis['stop'],
+                    'direction' => $analysis['bias']['direction'],
+                    'market_type' => $marketType,
+                    'leverage_limit' => $market['leverage_limit'] ?? null,
                 ], $config);
 
                 if ($risk['pass']) {
                     ProcessScannerSignal::dispatch($signal->id);
+                    ActivityLogger::log(
+                        $account->user_id, 'signal.auto_submitted',
+                        "Auto-trade submitted for {$symbol}.",
+                        'info', $config->id, $signal->id
+                    );
                 } else {
                     $this->repository->markWatchlist($signal);
                     Log::info('scanner.auto.blocked', [
                         'signal' => $signal->id, 'failures' => $risk['failures'],
                     ]);
+                    ActivityLogger::log(
+                        $account->user_id, 'signal.auto_blocked',
+                        "Auto-trade blocked for {$symbol}: ".implode('; ', $risk['failures']),
+                        'warning', $config->id, $signal->id
+                    );
                 }
             }
         }

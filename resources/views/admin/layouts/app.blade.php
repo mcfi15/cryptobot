@@ -11,12 +11,37 @@
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('css/crypto.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/crypto.css') }}?v=5">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body class="admin-body">
-    <div class="admin-shell">
-        <aside class="admin-sidebar">
-            <a href="{{ route('admin.dashboard') }}" class="side-brand">
+    <div class="admin-shell" x-data="{
+        open: false,
+        init() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') this.open = false;
+            });
+        }
+    }">
+        <button
+            class="admin-menu-btn"
+            @click="open = !open"
+            aria-label="Toggle admin navigation"
+            aria-controls="adminDrawer"
+            :aria-expanded="open.toString()"
+        >
+            <i class="fas" :class="open ? 'fa-times' : 'fa-bars'"></i>
+        </button>
+
+        <div
+            class="admin-overlay"
+            :class="{ 'show': open }"
+            @click="open = false"
+        ></div>
+
+        <aside id="adminDrawer" class="admin-sidebar" :class="{ 'open': open }">
+            <a href="{{ route('admin.dashboard') }}" class="side-brand" @click="open = false">
                 @if($siteLogo = site_setting('site_logo'))
                     <img src="{{ asset($siteLogo) }}" alt="Logo">
                 @else
@@ -26,10 +51,10 @@
             </a>
 
             <nav class="side-nav">
-                <a href="{{ route('admin.dashboard') }}" class="side-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" class="side-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" @click="open = false">
                     <i class="fas fa-gauge-high"></i> Dashboard
                 </a>
-                <a href="{{ route('admin.settings.edit') }}" class="side-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.settings.edit') }}" class="side-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}" @click="open = false">
                     <i class="fas fa-sliders"></i> Site Settings
                 </a>
             </nav>

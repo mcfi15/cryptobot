@@ -14,6 +14,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Services\Scanner\ActivityLogger;
 
 class ProcessScannerSignal implements ShouldQueue, ShouldBeUnique
 {
@@ -47,27 +48,6 @@ class ProcessScannerSignal implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        // Fresh risk re-check at execution time — final authority. Never bypassed.
-        $risk = $riskEngine->evaluate($account, [
-            'symbol' => $signal->symbol,
-            'base_asset' => $signal->base_asset,
-            'entry_price' => (float) $signal->entry_price,
-            'current_price' => (float) $signal->current_price ?: (float) $signal->entry_price,
-        ], $config);
-
-        if (!$risk['pass']) {
-            $signal->status = 'rejected';
-            $signal->invalidation = array_merge($signal->invalidation ?? [], [
-                'reason' => implode('; ', $risk['failures']),
-                'stage' => 'auto_execution_risk_gate',
-            ]);
-            $signal->save();
-            Log::info('scanner.auto.risk_blocked', [
-                'signal' => $signal->id, 'failures' => $risk['failures'],
-            ]);
-            return;
-        }
-
         $market = ExchangeMarket::where('exchange', $signal->exchange)
             ->where('symbol', $signal->symbol)
             ->where('market_type', $signal->market_type)
@@ -80,6 +60,33 @@ class ProcessScannerSignal implements ShouldQueue, ShouldBeUnique
                 'stage' => 'auto_execution',
             ]);
             $signal->save();
+            ActivityLogger::log($config->user_id, 'signal.rejected', "{$signal->symbol} rejected: market metadata missing.", 'warning', $config->id, $signal->id);
+            return;
+        }
+
+        // Fresh risk re-check at execution time — final authority. Never bypassed.
+        $risk = $riskEngine->evaluate($account, [
+            'symbol' => $signal->symbol,
+            'base_asset' => $signal->base_asset,
+            'entry_price' => (float) $signal->entry_price,
+            'current_price' => (float) $signal->current_price ?: (float) $signal->entry_price,
+            'stop_loss' => (float) $signal->stop_loss,
+            'direction' => $signal->direction,
+            'market_type' => $signal->market_type,
+            'leverage_limit' => $market->leverage_limit ?? null,
+        ], $config);
+
+        if (!$risk['pass']) {
+            $signal->status = 'rejected';
+            $signal->invalidation = array_merge($signal->invalidation ?? [], [
+                'reason' => implode('; ', $risk['failures']),
+                'stage' => 'auto_execution_risk_gate',
+            ]);
+            $signal->save();
+            Log::info('scanner.auto.risk_blocked', [
+                'signal' => $signal->id, 'failures' => $risk['failures'],
+            ]);
+            ActivityLogger::log($config->user_id, 'signal.risk_blocked', "{$signal->symbol} risk-blocked: ".implode('; ', $risk['failures']), 'danger', $config->id, $signal->id);
             return;
         }
 
@@ -91,6 +98,15 @@ class ProcessScannerSignal implements ShouldQueue, ShouldBeUnique
                 'stage' => 'auto_execution',
             ]);
             $signal->save();
+            ActivityLogger::log($config->user_id, 'signal.execution_failed', "{$signal->symbol} execution failed: ".$result['message'], 'danger', $config->id, $signal->id);
+            return;
         }
+
+        ActivityLogger::log(
+            $config->user_id, 'signal.executed',
+            "Executed {$signal->direction} {$signal->symbol} (".strtoupper($signal->market_type).") on {$signal->exchange}.",
+            'success', $config->id, $signal->id,
+            ['mode' => $config->paper_mode ? 'paper' : 'live']
+        );
     }
 }

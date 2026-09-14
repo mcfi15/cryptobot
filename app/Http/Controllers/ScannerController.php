@@ -8,9 +8,11 @@ use App\Models\GlobalSetting;
 use App\Models\ScannerConfig;
 use App\Models\ScannerSignal;
 use App\Models\ScannerWatchlistEntry;
+use App\Services\Scanner\ActivityLogger;
 use App\Services\Scanner\ScannerExecutionService;
 use App\Services\Scanner\ScannerRiskEngine;
 use App\Services\Scanner\ScannerService;
+use App\Services\Scanner\SignalRepository;
 use App\Services\Scanner\WatchlistService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,17 +23,20 @@ class ScannerController extends Controller
     protected ScannerRiskEngine $riskEngine;
     protected ScannerExecutionService $execution;
     protected WatchlistService $watchlist;
+    protected SignalRepository $watchlistRepository;
 
     public function __construct(
         ScannerService $scanner,
         ScannerRiskEngine $riskEngine,
         ScannerExecutionService $execution,
-        WatchlistService $watchlist
+        WatchlistService $watchlist,
+        SignalRepository $watchlistRepository
     ) {
         $this->scanner = $scanner;
         $this->riskEngine = $riskEngine;
         $this->execution = $execution;
         $this->watchlist = $watchlist;
+        $this->watchlistRepository = $watchlistRepository;
     }
 
     public function index()
@@ -69,10 +74,12 @@ class ScannerController extends Controller
         $globalKill = (bool) GlobalSetting::get('global_trading_kill_switch', false);
         $liveAllowed = (bool) GlobalSetting::get('scanner_live_allowed', false);
 
+        $activity = ActivityLogger::recent($user->id, 30);
+
         return view('scanner.index', compact(
             'config', 'signals', 'groups', 'recentRejected',
             'executed', 'watching', 'closed', 'exchanges', 'watchlist',
-            'killSwitch', 'globalKill', 'liveAllowed'
+            'killSwitch', 'globalKill', 'liveAllowed', 'activity'
         ));
     }
 
@@ -80,6 +87,7 @@ class ScannerController extends Controller
     {
         $config = ScannerConfig::forUser(Auth::id());
         $config->status = 'running';
+        $config->paused_reason = null;
         $config->save();
 
         return redirect()->route('scanner.index')->with('success', 'Scanner started.');
@@ -186,6 +194,52 @@ class ScannerController extends Controller
         return redirect()->route('scanner.index')->with('success', 'Watchlist reordered.');
     }
 
+    // --- Signal lifecycle ----------------------------------------
+
+    public function watch(Request $request, ScannerSignal $signal)
+    {
+        abort_unless($signal->user_id === Auth::id(), 404);
+        $config = ScannerConfig::forUser(Auth::id());
+        $this->repositoryWatch($signal);
+        return redirect()->route('scanner.index')->with('success', 'Signal added to watchlist.');
+    }
+
+    public function unwatch(Request $request, ScannerSignal $signal)
+    {
+        abort_unless($signal->user_id === Auth::id(), 404);
+        $config = ScannerConfig::forUser(Auth::id());
+        $this->repositoryUnwatch($signal);
+        ActivityLogger::log(Auth::id(), 'signal.unwatch', "Removed {$signal->symbol} from watchlist.", 'info', $config->id, $signal->id);
+        return redirect()->route('scanner.index')->with('success', 'Signal removed from watchlist.');
+    }
+
+    public function dismiss(Request $request, ScannerSignal $signal)
+    {
+        abort_unless($signal->user_id === Auth::id(), 404);
+        if (!$signal->isActive()) {
+            return redirect()->route('scanner.index')->with('warning', 'Signal is no longer active.');
+        }
+        $config = ScannerConfig::forUser(Auth::id());
+        $this->repositoryDismiss($signal);
+        ActivityLogger::log(Auth::id(), 'signal.dismiss', "Dismissed {$signal->symbol} ({$signal->direction}).", 'danger', $config->id, $signal->id);
+        return redirect()->route('scanner.index')->with('success', 'Signal dismissed.');
+    }
+
+    protected function repositoryWatch(ScannerSignal $signal): void
+    {
+        $this->watchlistRepository->markWatchlist($signal);
+    }
+
+    protected function repositoryUnwatch(ScannerSignal $signal): void
+    {
+        $this->watchlistRepository->removeWatchlist($signal);
+    }
+
+    protected function repositoryDismiss(ScannerSignal $signal): void
+    {
+        $this->watchlistRepository->markDismissed($signal);
+    }
+
     // --- Analysis & execution ---------------------------------------
 
     public function showSignal(Request $request, ScannerSignal $signal)
@@ -263,6 +317,10 @@ class ScannerController extends Controller
             'base_asset' => $signal->base_asset,
             'entry_price' => (float) $signal->entry_price,
             'current_price' => (float) ($signal->current_price ?? $signal->entry_price),
+            'stop_loss' => (float) $signal->stop_loss,
+            'direction' => $signal->direction,
+            'market_type' => $signal->market_type,
+            'leverage_limit' => $market->leverage_limit ?? null,
         ], $config, manual: true);
 
         if (!$risk['pass']) {
@@ -327,6 +385,9 @@ class ScannerController extends Controller
             'base_asset' => $signal->base_asset,
             'entry_price' => (float) $signal->entry_price,
             'current_price' => (float) ($signal->current_price ?? $signal->entry_price),
+            'stop_loss' => (float) $signal->stop_loss,
+            'direction' => $signal->direction,
+            'market_type' => $signal->market_type,
         ], $config, manual: true);
 
         return ['checked' => true, 'pass' => $summary['pass'], 'failures' => $summary['failures']];

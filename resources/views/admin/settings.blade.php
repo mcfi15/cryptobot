@@ -213,6 +213,32 @@
                         <input id="scanner_default_expiry" type="number" min="1" max="1440" class="form-control" name="scanner_default_expiry" value="{{ old('scanner_default_expiry', $settings['scanner_default_expiry'] ?? 30) }}">
                     </div>
                 </div>
+
+                <hr>
+
+                <div class="admin-sub mb-2">Portfolio capital protection</div>
+                <div class="form-row">
+                    <div class="col-6 col-lg-3 form-group">
+                        <label for="global_max_drawdown">Max Drawdown (%)</label>
+                        <input id="global_max_drawdown" type="number" step="0.1" min="0" max="100" class="form-control" name="global_max_drawdown" value="{{ old('global_max_drawdown', $settings['global_max_drawdown'] ?? 15) }}">
+                        <small class="text-muted">Auto-pause scanner when equity drops this far from peak</small>
+                    </div>
+                    <div class="col-6 col-lg-3 form-group">
+                        <label for="liquidation_distance_min_pct">Min Liquidation Distance (%)</label>
+                        <input id="liquidation_distance_min_pct" type="number" step="0.1" min="0" max="100" class="form-control" name="liquidation_distance_min_pct" value="{{ old('liquidation_distance_min_pct', $settings['liquidation_distance_min_pct'] ?? 3) }}">
+                        <small class="text-muted">Reject futures trades whose stop is too close to liquidation</small>
+                    </div>
+                    <div class="col-6 col-lg-3 form-group">
+                        <label for="max_correlated_exposure">Max Correlated Exposure (%)</label>
+                        <input id="max_correlated_exposure" type="number" step="0.1" min="0" max="100" class="form-control" name="max_correlated_exposure" value="{{ old('max_correlated_exposure', $settings['max_correlated_exposure'] ?? 30) }}">
+                        <small class="text-muted">Combined notional cap for the correlated cluster</small>
+                    </div>
+                    <div class="col-6 col-lg-3 form-group">
+                        <label for="correlated_assets">Correlated Assets</label>
+                        <input id="correlated_assets" type="text" class="form-control" name="correlated_assets" value="{{ old('correlated_assets', $settings['correlated_assets'] ?? 'BTC,ETH,SOL,BNB,XRP') }}">
+                        <small class="text-muted">Comma-separated base assets treated as one cluster</small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

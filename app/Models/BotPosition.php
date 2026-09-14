@@ -15,6 +15,7 @@ class BotPosition extends Model
         'symbol', 'side', 'quantity', 'entry_price', 'current_price',
         'leverage', 'margin', 'liquidation_price', 'unrealized_pnl',
         'stop_loss', 'take_profit', 'status', 'opened_at',
+        'trail_high', 'trail_low',
     ];
 
     protected $casts = [
@@ -26,6 +27,8 @@ class BotPosition extends Model
         'unrealized_pnl' => 'decimal:8',
         'stop_loss' => 'decimal:8',
         'take_profit' => 'decimal:8',
+        'trail_high' => 'decimal:8',
+        'trail_low' => 'decimal:8',
         'opened_at' => 'datetime',
     ];
 

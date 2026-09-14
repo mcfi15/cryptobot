@@ -19,6 +19,8 @@
             <span class="badge badge-secondary">expired</span>
         @elseif($s->status === 'rejected')
             <span class="badge badge-light">rejected</span>
+        @elseif($s->status === 'canceled')
+            <span class="badge badge-secondary">canceled</span>
         @elseif($s->status === 'executed')
             <span class="badge badge-success">executed</span>
         @elseif($s->watch)
@@ -32,6 +34,23 @@
         <button class="btn btn-xs btn-outline-secondary" @click="$dispatch('open-signal', {{ $s->id }})" title="Analyze"><i class="fas fa-search"></i></button>
         @if(in_array($s->status, ['qualified', 'watching', 'entry_pending'], true))
             <a href="{{ route('scanner.signal.confirm', $s) }}" class="btn btn-xs btn-outline-success" title="Trade"><i class="fas fa-rocket"></i></a>
+        @endif
+        @if($s->isActive() && $s->status !== 'canceled')
+            @if($s->watch)
+                <form method="POST" action="{{ route('scanner.signal.unwatch', $s) }}" class="d-inline" x-data="{ submitting: false }" @submit="submitting = true">
+                    @csrf
+                    <button type="submit" class="btn btn-xs btn-outline-warning" title="Unwatch" :disabled="submitting"><i class="fas fa-eye-slash"></i></button>
+                </form>
+            @else
+                <form method="POST" action="{{ route('scanner.signal.watch', $s) }}" class="d-inline" x-data="{ submitting: false }" @submit="submitting = true">
+                    @csrf
+                    <button type="submit" class="btn btn-xs btn-outline-info" title="Watch" :disabled="submitting"><i class="fas fa-eye"></i></button>
+                </form>
+            @endif
+            <form method="POST" action="{{ route('scanner.signal.dismiss', $s) }}" class="d-inline" x-data="{ submitting: false }" @submit="submitting = true">
+                @csrf
+                <button type="submit" class="btn btn-xs btn-outline-danger" title="Dismiss" :disabled="submitting"><i class="fas fa-ban"></i></button>
+            </form>
         @endif
     </td>
 </tr>

@@ -96,26 +96,8 @@ class TradingApiController extends Controller
         return response()->json($markets);
     }
 
-    public function getPerformance(Request $request)
+    public function getPerformance(Request $request, \App\Services\Scanner\PerformanceService $performance)
     {
-        $userId = Auth::id();
-
-        $totalPnl = BotTrade::where('user_id', $userId)->where('status', 'closed')->sum('pnl');
-        $totalTrades = BotTrade::where('user_id', $userId)->where('status', 'closed')->count();
-        $wins = BotTrade::where('user_id', $userId)->where('status', 'closed')->where('pnl', '>', 0)->count();
-        $winRate = $totalTrades > 0 ? round($wins / $totalTrades * 100, 1) : 0;
-
-        $avgWin = BotTrade::where('user_id', $userId)->where('status', 'closed')->where('pnl', '>', 0)->avg('pnl') ?? 0;
-        $avgLoss = abs(BotTrade::where('user_id', $userId)->where('status', 'closed')->where('pnl', '<', 0)->avg('pnl') ?? 0);
-        $profitFactor = $avgLoss > 0 ? round($avgWin / $avgLoss, 2) : 0;
-
-        return response()->json([
-            'total_pnl' => $totalPnl,
-            'total_trades' => $totalTrades,
-            'win_rate' => $winRate,
-            'profit_factor' => $profitFactor,
-            'avg_win' => round($avgWin, 2),
-            'avg_loss' => round($avgLoss, 2),
-        ]);
+        return response()->json($performance->summary(Auth::id(), (int) $request->get('days', 90)));
     }
 }

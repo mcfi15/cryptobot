@@ -7,9 +7,11 @@ use App\Models\ExchangeAccount;
 use App\Models\GlobalSetting;
 use App\Models\ScannerConfig;
 use App\Models\ScannerSignal;
+use App\Services\Scanner\ActivityLogger;
 use App\Services\Scanner\ScannerExecutionService;
 use App\Services\Scanner\ScannerRiskEngine;
 use App\Services\Scanner\ScannerService;
+use App\Services\Scanner\SignalRepository;
 use App\Services\Scanner\WatchlistService;
 use Illuminate\Http\Request;
 
@@ -122,6 +124,55 @@ class ScannerApiController extends Controller
         return response()->json([
             'ok' => true,
             'data' => $watchlist->entries($config->id),
+        ]);
+    }
+
+    public function watch(Request $request, int $signal, SignalRepository $repository)
+    {
+        $signal = ScannerSignal::where('user_id', $request->user()->id)->find($signal);
+        if (!$signal) {
+            return response()->json(['ok' => false, 'message' => 'Signal not found'], 404);
+        }
+        $repository->markWatchlist($signal);
+        return response()->json(['ok' => true, 'message' => 'Signal added to watchlist.']);
+    }
+
+    public function unwatch(Request $request, int $signal, SignalRepository $repository)
+    {
+        $signal = ScannerSignal::where('user_id', $request->user()->id)->find($signal);
+        if (!$signal) {
+            return response()->json(['ok' => false, 'message' => 'Signal not found'], 404);
+        }
+        $repository->removeWatchlist($signal);
+        return response()->json(['ok' => true, 'message' => 'Signal removed from watchlist.']);
+    }
+
+    public function dismiss(Request $request, int $signal, SignalRepository $repository)
+    {
+        $signal = ScannerSignal::where('user_id', $request->user()->id)->find($signal);
+        if (!$signal) {
+            return response()->json(['ok' => false, 'message' => 'Signal not found'], 404);
+        }
+        if (!$signal->isActive()) {
+            return response()->json(['ok' => false, 'message' => 'Signal no longer active'], 422);
+        }
+        $repository->markDismissed($signal);
+        return response()->json(['ok' => true, 'message' => 'Signal dismissed.']);
+    }
+
+    public function activity(Request $request)
+    {
+        $items = ActivityLogger::recent($request->user()->id, (int) $request->get('limit', 30));
+        return response()->json([
+            'ok' => true,
+            'data' => $items->map(fn ($a) => [
+                'id' => $a->id,
+                'level' => $a->level,
+                'event' => $a->event,
+                'message' => $a->message,
+                'signal_id' => $a->signal_id,
+                'created_at' => $a->created_at?->toIso8601String(),
+            ]),
         ]);
     }
 

@@ -21,5 +21,9 @@ Route::middleware(['auth'])->prefix('v1/scanner')->name('scanner.')->group(funct
     Route::get('/signals/{signal}', [ScannerApiController::class, 'signal']);
     Route::post('/run', [ScannerApiController::class, 'run']);
     Route::post('/signals/{signal}/trade', [ScannerApiController::class, 'trade']);
+    Route::post('/signals/{signal}/watch', [ScannerApiController::class, 'watch']);
+    Route::post('/signals/{signal}/unwatch', [ScannerApiController::class, 'unwatch']);
+    Route::post('/signals/{signal}/dismiss', [ScannerApiController::class, 'dismiss']);
     Route::get('/watchlist', [ScannerApiController::class, 'watchlist']);
+    Route::get('/activity', [ScannerApiController::class, 'activity']);
 });

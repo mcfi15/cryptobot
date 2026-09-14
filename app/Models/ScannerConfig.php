@@ -18,7 +18,10 @@ class ScannerConfig extends Model
         'timeframes', 'preferred_assets', 'quote_assets',
         'auto_trading', 'risk_per_trade', 'max_daily_loss', 'max_open_positions',
         'max_leverage', 'signal_expiry_minutes', 'trading_mode', 'paper_mode',
-        'status', 'scanned_markets', 'qualified_signals', 'last_scan_at', 'last_scan_duration_ms',
+        'status', 'paused_reason', 'peak_equity',
+        'cooldown_minutes', 'max_consecutive_losses', 'max_hold_hours',
+        'trailing_enabled', 'trailing_activation_pct', 'trailing_distance_pct', 'break_even_pct',
+        'scanned_markets', 'qualified_signals', 'last_scan_at', 'last_scan_duration_ms',
     ];
 
     protected $casts = [
@@ -34,6 +37,14 @@ class ScannerConfig extends Model
         'risk_per_trade' => 'decimal:2',
         'max_daily_loss' => 'decimal:2',
         'paper_mode' => 'boolean',
+        'trailing_enabled' => 'boolean',
+        'trailing_activation_pct' => 'decimal:3',
+        'trailing_distance_pct' => 'decimal:3',
+        'break_even_pct' => 'decimal:3',
+        'peak_equity' => 'decimal:8',
+        'max_hold_hours' => 'integer',
+        'cooldown_minutes' => 'integer',
+        'max_consecutive_losses' => 'integer',
         'last_scan_at' => 'datetime',
     ];
 

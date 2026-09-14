@@ -37,11 +37,18 @@ class SettingController extends Controller
         'scanner_default_ai',
         'scanner_default_rr',
         'scanner_default_expiry',
+        'global_max_drawdown',
+        'liquidation_distance_min_pct',
+        'max_correlated_exposure',
+    ];
+
+    protected array $scannerTextKeys = [
+        'correlated_assets',
     ];
 
     public function edit(): View
     {
-        $keys = array_merge($this->generalKeys, $this->tradingKeys, $this->scannerNumericKeys);
+        $keys = array_merge($this->generalKeys, $this->tradingKeys, $this->scannerNumericKeys, $this->scannerTextKeys);
         $rows = collect(\App\Models\GlobalSetting::whereIn('key', $keys)->get())
             ->pluck('value', 'key');
 
@@ -85,6 +92,10 @@ class SettingController extends Controller
             'scanner_default_ai' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'scanner_default_rr' => ['nullable', 'numeric', 'min:0.1', 'max:10'],
             'scanner_default_expiry' => ['nullable', 'integer', 'min:1', 'max:1440'],
+            'global_max_drawdown' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'liquidation_distance_min_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'max_correlated_exposure' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'correlated_assets' => ['nullable', 'string', 'max:500'],
         ]);
 
         foreach ($this->generalKeys as $key) {
@@ -121,6 +132,13 @@ class SettingController extends Controller
         foreach ($this->scannerNumericKeys as $key) {
             if (array_key_exists($key, $validated)) {
                 GlobalSetting::set($key, (float) $validated[$key]);
+                Cache::forget('site_setting:'.$key);
+            }
+        }
+
+        foreach ($this->scannerTextKeys as $key) {
+            if (array_key_exists($key, $validated)) {
+                GlobalSetting::set($key, (string) $validated[$key]);
                 Cache::forget('site_setting:'.$key);
             }
         }

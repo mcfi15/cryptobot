@@ -12,11 +12,12 @@ class ScannerMonitorCommand extends Command
 
     public function handle(SignalMonitor $monitor): int
     {
-        if ($this->option('dry-run')) {
+        $dryRun = $this->option('dry-run');
+        if ($dryRun) {
             $this->info('Dry-run mode: monitoring state only.');
         }
 
-        $result = $monitor->monitor();
+        $result = $monitor->monitor(dryRun: $dryRun);
         $this->info(
             "Monitored {$result['processed']} open scanner signal(s), closed {$result['closed']}."
         );

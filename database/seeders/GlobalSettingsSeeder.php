@@ -29,5 +29,11 @@ class GlobalSettingsSeeder extends Seeder
         GlobalSetting::set('scanner_default_ai', 70, 'Default minimum AI probability (%)');
         GlobalSetting::set('scanner_default_rr', 1.5, 'Default minimum risk/reward');
         GlobalSetting::set('scanner_default_expiry', 30, 'Default signal expiry in minutes');
+
+        // Portfolio-level capital protection (enforced by scanner risk engine).
+        GlobalSetting::set('global_max_drawdown', 15, 'Maximum portfolio drawdown (%) from equity peak before auto-pause');
+        GlobalSetting::set('liquidation_distance_min_pct', 3, 'Minimum allowed distance (%) between entry and estimated liquidation price for futures');
+        GlobalSetting::set('max_correlated_exposure', 30, 'Maximum combined notional exposure (%) for correlated cluster');
+        GlobalSetting::set('correlated_assets', 'BTC,ETH,SOL,BNB,XRP,ADA,DOGE,AVAX,LINK,LTC,DOT,MATIC', 'Base assets treated as a correlated major cluster');
     }
 }
