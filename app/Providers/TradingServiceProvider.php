@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use App\Models\ExchangeAccount;
+use App\Models\ScannerConfig;
 use App\Models\TradingBot;
 use App\Services\Exchanges\ExchangeFactory;
 use App\Services\Exchanges\Adapters\MexcAdapter;
@@ -46,7 +47,19 @@ class TradingServiceProvider extends ServiceProvider
                 $view->with('navExchanges', collect());
                 $view->with('navBots', collect());
             }
-            $view->with('navLiveTrading', (bool) config('trading.live_enabled', false));
+            $navLiveTrading = (bool) config('trading.live_enabled', false);
+
+            if (Auth::check()) {
+                $scannerConfig = ScannerConfig::query()
+                    ->where('user_id', Auth::id())
+                    ->first();
+
+                if ($scannerConfig) {
+                    $navLiveTrading = !$scannerConfig->paper_mode;
+                }
+            }
+
+            $view->with('navLiveTrading', $navLiveTrading);
         });
     }
 }

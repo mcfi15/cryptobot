@@ -36,7 +36,7 @@
             @else
                 <span class="badge badge-warning">Live</span>
             @endif
-
+ 
             <!-- User menu -->
             <div class="position-relative" @click.outside="userOpen = false">
                 <a href="#" class="nav-user" @click.prevent="userOpen = !userOpen" aria-expanded="false" :aria-expanded="userOpen.toString()">
