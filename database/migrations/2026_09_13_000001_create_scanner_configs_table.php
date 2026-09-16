@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('scan_mode')->default('all'); // all | watchlist | hybrid
             $table->json('exchanges')->nullable();        // null = all connected
             $table->string('market_type')->default('both'); // spot | futures | both
-            $table->integer('min_signal_score')->default(75);
-            $table->decimal('min_ai_probability', 5, 2)->default(70.00);
+            $table->integer('min_signal_score')->default(55);
+            $table->decimal('min_ai_probability', 5, 2)->default(55.00);
             $table->decimal('min_risk_reward', 5, 2)->default(1.50);
             $table->decimal('min_volume_24h', 20, 2)->default(1000000.00);
             $table->decimal('max_spread_pct', 6, 3)->default(0.500);
